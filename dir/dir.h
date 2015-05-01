@@ -39,6 +39,5 @@ int remove_a_dir(DIR_NODE *curr_dir, char *dir_name);
 void free_dir(DIR_NODE *dir);
 
 int filter(char *name);
-int read_dirent(DIR_NODE *dir);
 
 #endif

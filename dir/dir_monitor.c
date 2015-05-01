@@ -18,10 +18,17 @@ void add_file_change_event(int event)
 
 void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
+    if (old_dir == NULL)
+    {
+        add_dir_change_event(ADD_DIR, new_dir);
+        return;
+    }
 
-
-    DIR_NODE *old_chl_dir = old_dir->next_chl_dir;
-    DIR_NODE *new_chl_dir = new_dir->next_chl_dir;
+    if (new_dir == NULL)
+    {
+        add_dir_change_event(DEL_DIR, old_dir);
+        return;
+    }
 }
 
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)
@@ -50,10 +57,17 @@ void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
     }
 }
 
-void dir_changes(DIR_NODE *old_dir)
+void dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
-    DIR_NODE *new_dir = get_a_new_dir_node(old_dir->full_name, old_dir->name);
-    read_dirent(new_dir);
+    if ((old_dir == NULL) && (new_dir == NULL))
+    {
+        return;
+    }
+    chl_dir_change(old_dir, new_dir);
+    if (old_dir != NULL & new_dir != NULL)
+    {
+        file_change(old_dir, new_dir);
+    }
 
 }
 
