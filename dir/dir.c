@@ -26,7 +26,7 @@ void free_dir(DIR_NODE *dir)
     {
         next_del_chl_dir = del_chl_dir->next_bro_dir;
         free_dir(del_chl_dir);
-        del_chl_dir = next_del_chl_dir->next_bro_dir;
+        del_chl_dir = next_del_chl_dir;
     }
 
     printf("free dir %s\n", dir->name);

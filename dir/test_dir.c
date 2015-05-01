@@ -9,7 +9,7 @@ int main(int argc, char **args)
     printf("-------------------\n");
     printf("-------------------\n");
     printf("-------------------\n");
-    sleep(2);
+    //sleep(2);
     remove_a_dir(program_root_node, "apue.2e");
     print_dir(program_root_node);
 }
