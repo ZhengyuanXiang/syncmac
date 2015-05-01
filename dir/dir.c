@@ -13,8 +13,6 @@ void free_dir_node(DIR_NODE *dir_node)
     FILE_NODE *file_node_del = dir_node->next_file;
     FILE_NODE *file_node_del_next;
 
-
-
     while (file_node_del)
     {
         file_node_del_next = file_node_del->next_file;
