@@ -1,11 +1,14 @@
+#ifndef _DIR_H_
+#define _DIR_H_
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <errno.h> 
-#include <string.h> 
+#include <errno.h>
+#include <string.h>
 
 #define DIR_MAX 20
 #define FILE_MAX 30
@@ -36,3 +39,5 @@ int read_all_dirent(DIR_NODE *dir_node);
 FILE_NODE * get_a_new_file_node(char *relate_name, char *name);
 void inset_a_dir(DIR_NODE *work_dir, DIR_NODE *new_dir);
 void inset_a_file(DIR_NODE *work_dir, FILE_NODE *new_file);
+
+#endif

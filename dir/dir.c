@@ -1,5 +1,6 @@
 #include "dir.h"
 
+
 void print_dir(DIR_NODE *dir_node)
 {
     FILE_NODE * file_node = dir_node->next_file;
@@ -10,7 +11,7 @@ void print_dir(DIR_NODE *dir_node)
         printf("-reg %s\n", file_node->name);
         file_node = file_node->next_file;
     }
-    while (work_dir_node->next_dir)
+    if (work_dir_node->next_dir)
     {
         print_dir(work_dir_node->next_dir);
         work_dir_node = work_dir_node->next_dir;
@@ -58,7 +59,8 @@ int read_all_dirent(DIR_NODE *dir_node)
     while(NULL != (direntp = readdir(dirp)))
     {
         if (strcmp(direntp->d_name, ".") == 0 || 
-                  strcmp(direntp->d_name, "..") == 0)
+                  strcmp(direntp->d_name, "..") == 0 ||
+                  strcmp(direntp->d_name, "a.out.dSYM") == 0)
             continue;
         memset(file_path, 0, sizeof(file_path));
         strcpy(file_path, dir_node->relate_name);
@@ -126,17 +128,4 @@ FILE_NODE * get_a_new_file_node(char *relate_name, char *name)
     file_node->next_file = NULL;
 
     return file_node;
-}
-
-int main(int argc, char **args)
-{
-    DIR_NODE *program_root_node = get_a_new_dir_node(".", ".");
-
-    read_all_dirent(program_root_node);
-    printf("--------------------------\n");
-    printf("--------------------------\n");
-    printf("--------------------------\n");
-    printf("--------------------------\n");
-    sleep(1);
-    print_dir(program_root_node);
 }
