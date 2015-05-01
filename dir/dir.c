@@ -31,7 +31,7 @@ void free_dir(DIR_NODE *dir)
 
     printf("free dir %s\n", dir->name);
     free(dir->name);
-    free(dir->relate_name);
+    free(dir->full_name);
     free(dir);
 }
 
@@ -69,7 +69,7 @@ void free_file(FILE_NODE *file)
 {
     printf("free file %s\n", file->name);
     free(file->name);
-    free(file->relate_name);
+    free(file->full_name);
     free(file);
 }
 
@@ -105,7 +105,7 @@ void print_dir(DIR_NODE *dir)
 {
     FILE_NODE * file = dir->next_file;
     DIR_NODE * chl_dir = dir->next_chl_dir;
-    printf("-dir %s\n", dir->relate_name);
+    printf("-dir %s\n", dir->full_name);
     while(file)
     {
         printf("-reg %s\n", file->name);
@@ -133,7 +133,7 @@ void insert_a_chl_dir(DIR_NODE *curr_dir, DIR_NODE *new_dir)
 void insert_a_file(DIR_NODE *curr_dir, FILE_NODE *new_file)
 {
     FILE_NODE *tmp_file_node = curr_dir->next_file;
-    //printf("insert file %s %s\n", curr_dir->relate_name, new_file->name);
+    //printf("insert file %s %s\n", curr_dir->full_name, new_file->name);
 
     if (tmp_file_node == NULL)
     {
@@ -145,6 +145,16 @@ void insert_a_file(DIR_NODE *curr_dir, FILE_NODE *new_file)
     tmp_file_node->next_file = new_file;
     return;
 }
+
+int filter(char *name)
+{
+    if (strcmp(name, ".") == 0 || 
+            strcmp(name, "..") == 0 ||
+            strcmp(name, "a.out.dSYM") == 0)
+        return OK;
+    return ERR;
+}
+
 int read_all_dirent(DIR_NODE *dir)
 {
     DIR *dirp = NULL;
@@ -154,20 +164,18 @@ int read_all_dirent(DIR_NODE *dir)
     DIR_NODE *chld_dir_node;
     FILE_NODE *chld_file_node;
 
-    if (NULL == (dirp = opendir(dir->relate_name)))
+    if (NULL == (dirp = opendir(dir->full_name)))
     {
-        printf("open dir failed %d %s\n", errno, dir->relate_name);
+        printf("open dir failed %d %s\n", errno, dir->full_name);
         return ERR;
     }
    
     while(NULL != (direntp = readdir(dirp)))
     {
-        if (strcmp(direntp->d_name, ".") == 0 || 
-                  strcmp(direntp->d_name, "..") == 0 ||
-                  strcmp(direntp->d_name, "a.out.dSYM") == 0)
+        if (OK == filter(direntp->d_name))
             continue;
         memset(file_path, 0, sizeof(file_path));
-        strcpy(file_path, dir->relate_name);
+        strcpy(file_path, dir->full_name);
         strcat(file_path, "/");
         strcat(file_path, direntp->d_name);
         if (lstat(file_path, &statbuf) < 0)
@@ -199,13 +207,13 @@ int read_all_dirent(DIR_NODE *dir)
     
 }
 
-DIR_NODE * get_a_new_dir_node(char *relate_name, char *name)
+DIR_NODE * get_a_new_dir_node(char *full_name, char *name)
 {
     DIR_NODE *dir = malloc(sizeof(DIR_NODE));
 
-    dir->relate_name = malloc(strlen(relate_name) + 1);
-    memset(dir->relate_name, 0, strlen(relate_name) + 1);
-    strcpy(dir->relate_name, relate_name);
+    dir->full_name = malloc(strlen(full_name) + 1);
+    memset(dir->full_name, 0, strlen(full_name) + 1);
+    strcpy(dir->full_name, full_name);
 
     dir->name = malloc(strlen(name) + 1);
     memset(dir->name, 0, strlen(name) + 1);
@@ -218,13 +226,13 @@ DIR_NODE * get_a_new_dir_node(char *relate_name, char *name)
     return dir;
 }
 
-FILE_NODE * get_a_new_file_node(char *relate_name, char *name)
+FILE_NODE * get_a_new_file_node(char *full_name, char *name)
 {
     FILE_NODE *file = malloc(sizeof(FILE_NODE));
 
-    file->relate_name = malloc(strlen(relate_name) + 1);
-    memset(file->relate_name, 0, strlen(relate_name) + 1);
-    strcpy(file->relate_name, relate_name);
+    file->full_name = malloc(strlen(full_name) + 1);
+    memset(file->full_name, 0, strlen(full_name) + 1);
+    strcpy(file->full_name, full_name);
 
     file->name = malloc(strlen(name) + 1);
     memset(file->name, 0, strlen(name) + 1);
@@ -233,4 +241,54 @@ FILE_NODE * get_a_new_file_node(char *relate_name, char *name)
     file->next_file = NULL;
 
     return file;
+}
+
+int read_dirent(DIR_NODE *dir)
+{
+    DIR *dirp = NULL;
+    struct dirent *direntp;
+    struct stat statbuf;
+    char file_path[DIR_LEN_MAX] = {};
+    DIR_NODE *chld_dir_node;
+    FILE_NODE *chld_file_node;
+
+    if (NULL == (dirp = opendir(dir->full_name)))
+    {
+        printf("open dir failed %d %s\n", errno, dir->full_name);
+        return ERR;
+    }
+   
+    while(NULL != (direntp = readdir(dirp)))
+    {
+        if (OK == filter(direntp->d_name))
+            continue;
+        memset(file_path, 0, sizeof(file_path));
+        strcpy(file_path, dir->full_name);
+        strcat(file_path, "/");
+        strcat(file_path, direntp->d_name);
+        if (lstat(file_path, &statbuf) < 0)
+        {
+            printf("lstat %s error %d\n", file_path, errno);
+            continue;
+        }
+        if (S_ISDIR(statbuf.st_mode))
+        {
+            //printf("dir %s\n", file_path);
+            chld_dir_node = get_a_new_dir_node(file_path, direntp->d_name);
+            insert_a_chl_dir(dir, chld_dir_node);
+        }
+        else if (S_ISREG(statbuf.st_mode))
+        {
+            chld_file_node = get_a_new_file_node(file_path, direntp->d_name);
+            insert_a_file(dir, chld_file_node);
+            //printf("reg %s\n", file_path);
+        }
+        else
+        {
+            printf("unknow %s\n", file_path);
+        }
+    }
+    closedir(dirp);
+    return OK;
+    
 }
