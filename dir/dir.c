@@ -1,5 +1,4 @@
 #include "dir.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -9,6 +8,96 @@
 #include <errno.h>
 #include <string.h>
 
+void free_dir_node(DIR_NODE *dir_node)
+{
+    FILE_NODE *file_node_del = dir_node->next_file;
+    FILE_NODE *file_node_del_next;
+
+
+
+    while (file_node_del)
+    {
+        file_node_del_next = file_node_del->next_file;
+        free_file_node(file_node_del);
+        file_node_del = file_node_del_next;
+    }
+
+    if (dir_node->next_dir)
+    {
+        free_dir_node(dir_node->next_dir);
+    }
+    printf("free dir %s\n", dir_node->name);
+    free(dir_node->name);
+    free(dir_node->relate_name);
+    free(dir_node);
+}
+
+int remove_a_dir(DIR_NODE *curr_dir, char *dir_name)
+{
+    DIR_NODE *del_dir_node = curr_dir->next_dir;
+    DIR_NODE *pre_del_dir_node;
+
+    if (del_dir_node == NULL)
+        return ERR;
+    if (0 == strcmp(del_dir_node->name, dir_name))
+    {
+        curr_dir->next_dir = del_dir_node->next_dir;
+        free_dir_node(del_dir_node);
+        return OK;
+    }
+
+    pre_del_dir_node = del_dir_node;
+    del_dir_node = del_dir_node->next_dir;
+    while (del_dir_node != NULL)
+    {
+        if (0 == strcmp(del_dir_node->name, dir_name))
+        {
+            pre_del_dir_node = del_dir_node->next_dir;
+            free_dir_node(del_dir_node);
+            return OK;
+        }
+        pre_del_dir_node = del_dir_node;
+        del_dir_node = del_dir_node->next_dir;
+    }
+    return ERR;
+}
+
+void free_file_node(FILE_NODE *file_node)
+{
+    printf("free file %s\n", file_node->name);
+    free(file_node->name);
+    free(file_node->relate_name);
+    free(file_node);
+}
+
+int remove_a_file(DIR_NODE *curr_dir, char *file_name)
+{
+    FILE_NODE *delete_file_node = curr_dir->next_file;
+    FILE_NODE *pre_delete_file_node;
+ 
+    if (delete_file_node == NULL)
+        return ERR;
+    if (0 == strcmp(delete_file_node->name, file_name))
+    {
+        curr_dir->next_file = delete_file_node->next_file;
+        free_file_node(delete_file_node);
+        return OK;
+    }
+    pre_delete_file_node = delete_file_node;
+    delete_file_node = delete_file_node->next_file;
+    while (delete_file_node != NULL)
+    {
+        if (0 == strcmp(delete_file_node->name, file_name))
+        {
+            pre_delete_file_node->next_file = delete_file_node->next_file;
+            free_file_node(delete_file_node);
+            return OK;
+        }
+        pre_delete_file_node = delete_file_node;
+        delete_file_node = delete_file_node->next_file;
+    }
+    return ERR;
+}
 void print_dir(DIR_NODE *dir_node)
 {
     FILE_NODE * file_node = dir_node->next_file;
@@ -22,26 +111,25 @@ void print_dir(DIR_NODE *dir_node)
     if (work_dir_node->next_dir)
     {
         print_dir(work_dir_node->next_dir);
-        work_dir_node = work_dir_node->next_dir;
     }
 }
 
-void inset_a_dir(DIR_NODE *work_dir, DIR_NODE *new_dir)
+void inset_a_dir(DIR_NODE *curr_dir, DIR_NODE *new_dir)
 {
-    DIR_NODE *tmp_dir_node = work_dir;
-    //printf("insert dir %s %s\n", work_dir->relate_name, new_dir->name);
+    DIR_NODE *tmp_dir_node = curr_dir;
+    //printf("insert dir %s %s\n", curr_dir->relate_name, new_dir->name);
     while(tmp_dir_node->next_dir)
         tmp_dir_node = tmp_dir_node->next_dir;
     tmp_dir_node->next_dir = new_dir;
 }
-void inset_a_file(DIR_NODE *work_dir, FILE_NODE *new_file)
+void inset_a_file(DIR_NODE *curr_dir, FILE_NODE *new_file)
 {
-    FILE_NODE *tmp_file_node = work_dir->next_file;
-    //printf("insert file %s %s\n", work_dir->relate_name, new_file->name);
+    FILE_NODE *tmp_file_node = curr_dir->next_file;
+    //printf("insert file %s %s\n", curr_dir->relate_name, new_file->name);
 
     if (tmp_file_node == NULL)
     {
-        work_dir->next_file = new_file;
+        curr_dir->next_file = new_file;
         return;
     }
     while(tmp_file_node->next_file)
