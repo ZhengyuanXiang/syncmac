@@ -1,15 +1,6 @@
 #ifndef _DIR_H_
 #define _DIR_H_
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-
 #define DIR_MAX 20
 #define FILE_MAX 30
 #define ERR 1
