@@ -31,3 +31,5 @@
 # Debug files
 *.dSYM/
 
+apue.2e/
+.tags*
