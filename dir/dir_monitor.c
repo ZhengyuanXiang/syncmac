@@ -3,12 +3,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <syslog.h>
 
 #define DEL_DIR 1
 #define ADD_DIR 2
 
 #define DEL_FILE 3
 #define ADD_FILE 4
+
+#define CHECK_INTERVAL 3
+#define DIR_LOG_IDENT "dir_monitor"
+
+void free_task(SYNC_TASK *task)
+{
+    free(task->full_name);
+    free(task->name);
+    free(task);
+}
+
+SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name)
+{
+    SYNC_TASK *task = malloc(sizeof(SYNC_TASK));
+    task->type = type;
+
+    task->full_name = malloc(strlen(full_name) + 1);
+    strcpy(task->full_name, full_name);
+    task->full_name[strlen(full_name)] = 0;
+
+    task->name = malloc(strlen(name) + 1);
+    strcpy(task->name, name);
+    task->name[strlen(name)] = 0;
+
+    task->next = NULL;
+    return task;
+}
 
 static int file_add = 0;
 static int file_del = 0;
@@ -165,18 +193,19 @@ void dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 
 void monitor()
 {
+    openlog(DIR_LOG_IDENT, LOG_PID, LOG_LOCAL0);
     DIR_NODE *old_dir = get_a_new_dir_node(".", ".");
     read_all_dirent(old_dir);
     DIR_NODE *new_dir;
     print_dir(old_dir);
     while (1)
     {
-        sleep(3);
+        sleep(CHECK_INTERVAL);
         new_dir = get_a_new_dir_node(".", ".");
         read_all_dirent(new_dir);
         dir_changes(old_dir, new_dir);
-        printf("file add %d del %d\n", file_add, file_del);
-        printf("dir add %d del %d\n", dir_add, dir_del);
+        syslog(LOG_INFO, "file add %d del %d\n", file_add, file_del);
+        syslog(LOG_INFO, "dir add %d del %d\n", dir_add, dir_del);
         file_add = 0;
         file_del = 0;
         dir_add = 0;
@@ -184,4 +213,5 @@ void monitor()
         free_dir(old_dir);
         old_dir = new_dir;
     }
+    closelog();
 }
