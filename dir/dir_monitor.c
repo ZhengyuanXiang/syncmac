@@ -6,12 +6,104 @@
 #include <syslog.h>
 #include "syncmac.h"
 
-#define DEL_DIR 1
-#define ADD_DIR 2
-#define DEL_FILE 3
-#define ADD_FILE 4
-
 #define DIR_LOG_IDENT "dir_monitor"
+
+#define ALLOW_WORK 1
+/*waiting for task process over*/
+#define WAIT_WORK 0
+
+#define CHANGED 1
+#define UNCHANGED 0
+
+static pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_mutex_t work_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t prd_work_cond = PTHREAD_COND_INITIALIZER;
+
+static int prd_work_status = ALLOW_WORK;
+
+int task_cnt = 0;
+
+int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
+{
+    int change_flag = UNCHANGED;
+    if (CHANGED == chl_dir_change(old_dir, new_dir))
+    {
+        change_flag = CHANGED;
+    }
+    if (CHANGED == file_change(old_dir, new_dir))
+    {
+        change_flag = CHANGED;
+    }
+    return change_flag;
+}
+
+void monitor()
+{
+    openlog(DIR_LOG_IDENT, LOG_PID, LOG_LOCAL0);
+    DIR_NODE *old_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
+    read_all_dirent(old_dir);
+    DIR_NODE *new_dir;
+    while (1)
+    {
+        pthread_mutex_lock(&work_mutex);
+        while (prd_work_status == WAIT_WORK)
+        {
+            pthread_cond_wait(&prd_work_cond, &work_mutex);
+        }
+        sleep(CHECK_INTERVAL);
+        new_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
+        read_all_dirent(new_dir);
+        if (CHANGED == dir_changes(old_dir, new_dir))
+            prd_work_status == WAIT_WORK;
+        pthread_mutex_unlock(&work_mutex);
+        free_dir(old_dir);
+        old_dir = new_dir;
+    }
+    closelog();
+}
+
+void free_task(SYNC_TASK *task)
+{
+    pthread_mutex_lock(&work_mutex);
+    task_cnt--;
+    prd_work_status = ALLOW_WORK;
+    pthread_cond_signal(&prd_work_cond);
+    pthread_mutex_unlock(&work_mutex);
+
+    free(task->full_name);
+    free(task->name);
+    free(task);
+}
+
+void add_task(SYNC_TASK *new_task)
+{
+    pthread_mutex_lock(&task_mutex);
+    pthread_mutex_lock(&work_mutex);
+    SYNC_TASK *task = &task_head;
+    while(task->next)
+        task = task->next;
+    task->next = new_task;
+    task_cnt++;
+    pthread_mutex_unlock(&task_mutex);
+    pthread_mutex_unlock(&work_mutex);
+}
+
+SYNC_TASK *fetch_task()
+{
+    pthread_mutex_lock(&task_mutex);
+    SYNC_TASK *task = task_head.next;
+    if (task == NULL)
+    {
+        pthread_mutex_unlock(&task_mutex);
+        return NULL;
+    }
+    
+    task_head.next = task->next;
+    pthread_mutex_unlock(&task_mutex);
+    return task;
+}
+
 
 static void test_print_task(SYNC_TASK *task)
 {
@@ -57,27 +149,6 @@ void proc_all_task(void (*proc)(SYNC_TASK *))
     }
 }
 
-void free_task(SYNC_TASK *task)
-{
-    free(task->full_name);
-    free(task->name);
-    free(task);
-}
-
-void add_task(SYNC_TASK *new_task)
-{
-    new_task->next = task_head.next;
-    task_head.next = new_task;
-}
-
-SYNC_TASK *fetch_task()
-{
-    SYNC_TASK *task = task_head.next;
-    if (task == NULL)
-        return NULL;
-    task_head.next = task->next;
-    return task;
-}
 
 SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name)
 {
@@ -168,10 +239,12 @@ int is_same_dir(DIR_NODE *old_dir, DIR_NODE *new_dir)
     return ERR;
 }
 
-void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
+int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
     DIR_NODE *old_chl_dir = old_dir->next_chl_dir;
     DIR_NODE *new_chl_dir;
+
+    int change_flag = UNCHANGED;
 
     while (old_chl_dir != NULL)
     {
@@ -180,13 +253,19 @@ void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
         {
             if (OK == is_same_dir(old_chl_dir, new_chl_dir))
             {
-                dir_changes(old_chl_dir, new_chl_dir);
+                if (CHANGED == dir_changes(old_chl_dir, new_chl_dir))
+                {
+                    change_flag = CHANGED;
+                }
                 break;
             }
             new_chl_dir = new_chl_dir->next_bro_dir;
         }
         if (new_chl_dir == NULL)
+        {
+            change_flag = CHANGED;
             new_event(DEL_DIR, (void*)old_chl_dir);
+        }
         old_chl_dir = old_chl_dir->next_bro_dir;
     }
 
@@ -203,18 +282,23 @@ void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             old_chl_dir = old_chl_dir->next_bro_dir;
         }
         if (old_chl_dir == NULL)
+        {
+            change_flag = CHANGED;
             new_event(ADD_DIR, (void *)new_chl_dir);
+        }
         new_chl_dir = new_chl_dir->next_bro_dir;
     }
-    return;
+    return change_flag;
 }
 
 
 
-void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
+int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
     FILE_NODE *old_file = old_dir->next_file;
     FILE_NODE *new_file;
+
+    int change_flag = UNCHANGED;
 
     while (old_file != NULL)
     {
@@ -226,7 +310,10 @@ void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             new_file = new_file->next_file;
         }
         if (NULL == new_file)
-           new_event(DEL_FILE, (void *)old_file);
+        {
+            change_flag = CHANGED;
+            new_event(DEL_FILE, (void *)old_file);
+        }
        old_file = old_file->next_file;
     }
 
@@ -241,41 +328,11 @@ void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             old_file = old_file->next_file;
         }
         if (NULL == old_file)
+        {
+            change_flag = CHANGED;
             new_event(ADD_FILE, (void *)new_file);
+        }
         new_file = new_file->next_file;
     }
-    return;
-}
-
-void dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
-{
-    chl_dir_change(old_dir, new_dir);
-    file_change(old_dir, new_dir);
-}
-
-void monitor()
-{
-    openlog(DIR_LOG_IDENT, LOG_PID, LOG_LOCAL0);
-    DIR_NODE *old_dir = get_a_new_dir_node(".", ".");
-    read_all_dirent(old_dir);
-    DIR_NODE *new_dir;
-    while (1)
-    {
-        sleep(CHECK_INTERVAL);
-        new_dir = get_a_new_dir_node(".", ".");
-        read_all_dirent(new_dir);
-        dir_changes(old_dir, new_dir);
-        syslog(LOG_INFO, "file add %d del %d\n", file_add, file_del);
-        //printf("file add %d del %d\n", file_add, file_del);
-        //printf("dir add %d del %d\n", dir_add, dir_del);
-        syslog(LOG_INFO, "dir add %d del %d\n", dir_add, dir_del);
-        file_add = 0;
-        file_del = 0;
-        dir_add = 0;
-        dir_del = 0;
-        free_dir(old_dir);
-        old_dir = new_dir;
-        //proc_all_task(test_print_task);
-    }
-    closelog();
+    return change_flag;
 }

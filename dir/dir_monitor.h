@@ -13,11 +13,11 @@ typedef struct tag_sync_task
 }SYNC_TASK;
 
 void new_event(char event, void* data);
-void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
+int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file);
 int is_same_dir(DIR_NODE *old_dir, DIR_NODE *new_dir);
-void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
-void dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir);
+int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
+int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir);
 void monitor();
 SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name);
 void free_task(SYNC_TASK *task);
