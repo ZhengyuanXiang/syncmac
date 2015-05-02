@@ -3,8 +3,7 @@
 
 #define DIR_MAX 20
 #define FILE_MAX 30
-#define ERR 1
-#define OK 0
+
 #define DIR_LEN_MAX 300
 
 #define DIRNODE SIF_DIR

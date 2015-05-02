@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "syncmac.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>

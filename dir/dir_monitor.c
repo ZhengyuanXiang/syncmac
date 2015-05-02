@@ -4,14 +4,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <syslog.h>
+#include "syncmac.h"
 
 #define DEL_DIR 1
 #define ADD_DIR 2
-
 #define DEL_FILE 3
 #define ADD_FILE 4
 
-#define CHECK_INTERVAL 15
 #define DIR_LOG_IDENT "dir_monitor"
 
 static void test_print_task(SYNC_TASK *task)
@@ -260,7 +259,6 @@ void monitor()
     DIR_NODE *old_dir = get_a_new_dir_node(".", ".");
     read_all_dirent(old_dir);
     DIR_NODE *new_dir;
-    //print_dir(old_dir);
     while (1)
     {
         printf("--------------------\n");
