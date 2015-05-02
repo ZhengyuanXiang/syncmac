@@ -11,14 +11,73 @@
 #define DEL_FILE 3
 #define ADD_FILE 4
 
-#define CHECK_INTERVAL 3
+#define CHECK_INTERVAL 15
 #define DIR_LOG_IDENT "dir_monitor"
+
+static void test_print_task(SYNC_TASK *task)
+{
+    switch(task->type)
+    {
+        case DEL_DIR:
+        {
+            printf("[TASK] delete dir %s\n", task->full_name);
+            break;
+        }
+        case ADD_DIR:
+        {
+            printf("[TASK] ADD dir %s\n", task->full_name);
+            break;
+        }
+        case DEL_FILE:
+        {
+            printf("[TASK] delete file %s\n", task->full_name);
+            break;
+        }
+        case ADD_FILE:
+        {
+            printf("[TASK] ADD file %s\n", task->full_name);
+            break;
+        }
+        default:
+        {
+            printf("[TASK] unknow\n");
+        }
+    }
+}
+
+SYNC_TASK task_head = {0};
+
+void proc_all_task(void (*proc)(SYNC_TASK *))
+{
+    SYNC_TASK *task = fetch_task();
+    while(task)
+    {
+        proc(task);
+        free_task(task);
+        task = fetch_task();
+    }
+}
 
 void free_task(SYNC_TASK *task)
 {
     free(task->full_name);
     free(task->name);
     free(task);
+}
+
+void add_task(SYNC_TASK *new_task)
+{
+    new_task->next = task_head.next;
+    task_head.next = new_task;
+}
+
+SYNC_TASK *fetch_task()
+{
+    SYNC_TASK *task = task_head.next;
+    if (task == NULL)
+        return NULL;
+    task_head.next = task->next;
+    return task;
 }
 
 SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name)
@@ -43,52 +102,56 @@ static int file_del = 0;
 static int dir_add = 0;
 static int dir_del = 0;
 
-void add_dir_change_event(int event, DIR_NODE *dir)
+void new_event(char event, void* data)
 {
+    SYNC_TASK *task;
+    DIR_NODE *dir;
+    FILE_NODE *file;
+
     switch(event)
     {
         case ADD_DIR:
         {
+            dir = (DIR_NODE *)data;
+            task = get_new_sync_task(event, dir->full_name, dir->name);
+            add_task(task);
             dir_add++;
-            printf("add dir %s\n", dir->full_name);
+            //printf("add dir %s\n", dir->full_name);
             break;
         }
         case DEL_DIR:
         {
-            dir_del++;
-            printf("delete dir %s\n", dir->full_name);
-            break;
+            dir = (DIR_NODE *)data;
+            task = get_new_sync_task(event, dir->full_name, dir->name);
+            add_task(task);
+            //printf("delete dir %s\n", dir->full_name);
+            break;         
         }
-        default:
-        {
-            printf("unknow dir %s\n", dir->full_name);
-        }
-    }
-}
-
-void add_file_change_event(int event, FILE_NODE *file)
-{
-
-    switch(event)
-    {
         case ADD_FILE:
         {
+            file = (FILE_NODE *)data;
+            task = get_new_sync_task(event, file->full_name, file->name);
+            add_task(task);
             file_add++;
-            printf("add file %s\n", file->full_name);
+            //printf("add file %s\n", file->full_name);
             break;
         }
         case DEL_FILE:
         {
+            file = (FILE_NODE *)data;
+            task = get_new_sync_task(event, file->full_name, file->name);
+            add_task(task);
             file_del++;
-            printf("delete file %s\n", file->full_name);
+            //printf("delete file %s\n", file->full_name);
             break;
         }
         default:
         {
-            printf("unknow change %s\n", file->full_name);
+            printf("unknow change\n");
         }
     }
 }
+
 
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)
 {
@@ -124,7 +187,7 @@ void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             new_chl_dir = new_chl_dir->next_bro_dir;
         }
         if (new_chl_dir == NULL)
-            add_dir_change_event(DEL_DIR, old_chl_dir);
+            new_event(DEL_DIR, (void*)old_chl_dir);
         old_chl_dir = old_chl_dir->next_bro_dir;
     }
 
@@ -141,7 +204,7 @@ void chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             old_chl_dir = old_chl_dir->next_bro_dir;
         }
         if (old_chl_dir == NULL)
-            add_dir_change_event(ADD_DIR, new_chl_dir);
+            new_event(ADD_DIR, (void *)new_chl_dir);
         new_chl_dir = new_chl_dir->next_bro_dir;
     }
     return;
@@ -164,7 +227,7 @@ void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             new_file = new_file->next_file;
         }
         if (NULL == new_file)
-           add_file_change_event(DEL_FILE, old_file);
+           new_event(DEL_FILE, (void *)old_file);
        old_file = old_file->next_file;
     }
 
@@ -179,7 +242,7 @@ void file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             old_file = old_file->next_file;
         }
         if (NULL == old_file)
-            add_file_change_event(ADD_FILE, new_file);
+            new_event(ADD_FILE, (void *)new_file);
         new_file = new_file->next_file;
     }
     return;
@@ -197,14 +260,17 @@ void monitor()
     DIR_NODE *old_dir = get_a_new_dir_node(".", ".");
     read_all_dirent(old_dir);
     DIR_NODE *new_dir;
-    print_dir(old_dir);
+    //print_dir(old_dir);
     while (1)
     {
+        printf("--------------------\n");
         sleep(CHECK_INTERVAL);
         new_dir = get_a_new_dir_node(".", ".");
         read_all_dirent(new_dir);
         dir_changes(old_dir, new_dir);
         syslog(LOG_INFO, "file add %d del %d\n", file_add, file_del);
+        //printf("file add %d del %d\n", file_add, file_del);
+        //printf("dir add %d del %d\n", dir_add, dir_del);
         syslog(LOG_INFO, "dir add %d del %d\n", dir_add, dir_del);
         file_add = 0;
         file_del = 0;
@@ -212,6 +278,8 @@ void monitor()
         dir_del = 0;
         free_dir(old_dir);
         old_dir = new_dir;
+        proc_all_task(test_print_task);
+        printf("--------------------\n");
     }
     closelog();
 }
