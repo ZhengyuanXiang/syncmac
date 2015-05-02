@@ -11,14 +11,51 @@
 #define WORK_THREAD_CNT 10
 #define DIR_LOG_IDENT "WORK_THREAD"
 
-static void *work_thr(void *arg)
+
+static int get_rand(unsigned int seed)
 {
-    pthread_t thr_id = pthread_self();
-    printf("work thread %d created\n", thr_id);
-    SYNC_TASK *task = fetch_task();
+    unsigned int state;
+    srand(seed);
+    return rand() % 10 + 1;
 }
 
-int init_work_thr_pool()
+static void do_task(SYNC_TASK *task)
+{
+    pthread_t thr_id = pthread_self();
+    int sleep_sec = get_rand(thr_id);
+
+    switch (task->type)
+    {
+        case DEL_DIR:
+        {
+            printf("%ld [DEL_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
+            break;
+        }
+        case ADD_DIR:
+        {
+            printf("%ld [ADD_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
+            break;
+        }
+        case ADD_FILE:
+        {
+            printf("%ld [ADD_FILE] %d %s", thr_id, sleep_sec, task->full_name);
+            break;
+        }
+        case DEL_FILE:
+        {
+            printf("%ld [DEL_FILE] %d %s", thr_id, sleep_sec, task->full_name);
+            break;
+        }
+    }
+    sleep(sleep_sec);
+}
+
+void *work_thr_clinet(void *arg)
+{
+
+}
+
+int init_work_thr_pool(void *(*work_thr)(void *))
 {
     int thr_cnt = 0;
     pthread_t thr_id;

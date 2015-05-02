@@ -5,6 +5,6 @@
 
 int main(int argc, char **args)
 {
-    init_work_thr_pool();
+    init_work_thr_pool(work_thr_clinet);
     pause();
 }
