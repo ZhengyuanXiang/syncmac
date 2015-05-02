@@ -261,7 +261,6 @@ void monitor()
     DIR_NODE *new_dir;
     while (1)
     {
-        printf("--------------------\n");
         sleep(CHECK_INTERVAL);
         new_dir = get_a_new_dir_node(".", ".");
         read_all_dirent(new_dir);
@@ -276,8 +275,7 @@ void monitor()
         dir_del = 0;
         free_dir(old_dir);
         old_dir = new_dir;
-        proc_all_task(test_print_task);
-        printf("--------------------\n");
+        //proc_all_task(test_print_task);
     }
     closelog();
 }
