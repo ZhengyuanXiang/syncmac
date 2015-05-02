@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #define DEL_DIR 1
 #define ADD_DIR 2
@@ -9,6 +10,10 @@
 #define DEL_FILE 3
 #define ADD_FILE 4
 
+static int file_add = 0;
+static int file_del = 0;
+static int dir_add = 0;
+static int dir_del = 0;
 
 void add_dir_change_event(int event, DIR_NODE *dir)
 {
@@ -16,11 +21,13 @@ void add_dir_change_event(int event, DIR_NODE *dir)
     {
         case ADD_DIR:
         {
+            dir_add++;
             printf("add dir %s\n", dir->full_name);
             break;
         }
         case DEL_DIR:
         {
+            dir_del++;
             printf("delete dir %s\n", dir->full_name);
             break;
         }
@@ -33,15 +40,18 @@ void add_dir_change_event(int event, DIR_NODE *dir)
 
 void add_file_change_event(int event, FILE_NODE *file)
 {
+
     switch(event)
     {
         case ADD_FILE:
         {
+            file_add++;
             printf("add file %s\n", file->full_name);
             break;
         }
         case DEL_FILE:
         {
+            file_del++;
             printf("delete file %s\n", file->full_name);
             break;
         }
@@ -151,4 +161,27 @@ void dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
     chl_dir_change(old_dir, new_dir);
     file_change(old_dir, new_dir);
+}
+
+void monitor()
+{
+    DIR_NODE *old_dir = get_a_new_dir_node(".", ".");
+    read_all_dirent(old_dir);
+    DIR_NODE *new_dir;
+    print_dir(old_dir);
+    while (1)
+    {
+        sleep(3);
+        new_dir = get_a_new_dir_node(".", ".");
+        read_all_dirent(new_dir);
+        dir_changes(old_dir, new_dir);
+        printf("file add %d del %d\n", file_add, file_del);
+        printf("dir add %d del %d\n", dir_add, dir_del);
+        file_add = 0;
+        file_del = 0;
+        dir_add = 0;
+        dir_del = 0;
+        free_dir(old_dir);
+        old_dir = new_dir;
+    }
 }

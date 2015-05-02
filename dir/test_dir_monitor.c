@@ -4,5 +4,5 @@
 
 int main(int argc, char **args)
 {
-    printf ("test_dir_monitor\n");
+    monitor();
 }

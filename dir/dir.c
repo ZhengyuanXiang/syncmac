@@ -29,7 +29,7 @@ void free_dir(DIR_NODE *dir)
         del_chl_dir = next_del_chl_dir;
     }
 
-    printf("free dir %s\n", dir->name);
+    //printf("free dir %s\n", dir->name);
     free(dir->name);
     free(dir->full_name);
     free(dir);
@@ -67,7 +67,7 @@ int remove_a_dir(DIR_NODE *curr_dir, char *dir_name)
 
 void free_file(FILE_NODE *file)
 {
-    printf("free file %s\n", file->name);
+    //printf("free file %s\n", file->name);
     free(file->name);
     free(file->full_name);
     free(file);
@@ -105,10 +105,10 @@ void print_dir(DIR_NODE *dir)
 {
     FILE_NODE * file = dir->next_file;
     DIR_NODE * chl_dir = dir->next_chl_dir;
-    printf("-dir %s\n", dir->full_name);
+    //printf("-dir %s\n", dir->full_name);
     while(file)
     {
-        printf("-reg %s\n", file->name);
+        //printf("-reg %s\n", file->name);
         file = file->next_file;
     }
     while (chl_dir)
@@ -199,7 +199,7 @@ int read_all_dirent(DIR_NODE *dir)
         }
         else
         {
-            printf("unknow %s\n", file_path);
+            //printf("unknow %s\n", file_path);
         }
     }
     closedir(dirp);
