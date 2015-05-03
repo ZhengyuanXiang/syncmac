@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <syslog.h>
+#include <pthread.h>
 #include "syncmac.h"
 
 #define DIR_LOG_IDENT "dir_monitor"
@@ -14,6 +15,8 @@
 
 #define CHANGED 1
 #define UNCHANGED 0
+
+SYNC_TASK task_head = {0};
 
 static pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -44,6 +47,7 @@ void monitor()
     DIR_NODE *old_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
     read_all_dirent(old_dir);
     DIR_NODE *new_dir;
+    PRINT("xxxxxx\n");
     while (1)
     {
         pthread_mutex_lock(&work_mutex);
@@ -55,7 +59,7 @@ void monitor()
         new_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
         read_all_dirent(new_dir);
         if (CHANGED == dir_changes(old_dir, new_dir))
-            prd_work_status == WAIT_WORK;
+            prd_work_status = WAIT_WORK;
         pthread_mutex_unlock(&work_mutex);
         free_dir(old_dir);
         old_dir = new_dir;
@@ -111,32 +115,30 @@ static void test_print_task(SYNC_TASK *task)
     {
         case DEL_DIR:
         {
-            printf("[TASK] delete dir %s\n", task->full_name);
+            PRINT("[TASK] delete dir %s\n", task->full_name);
             break;
         }
         case ADD_DIR:
         {
-            printf("[TASK] ADD dir %s\n", task->full_name);
+            PRINT("[TASK] ADD dir %s\n", task->full_name);
             break;
         }
         case DEL_FILE:
         {
-            printf("[TASK] delete file %s\n", task->full_name);
+            PRINT("[TASK] delete file %s\n", task->full_name);
             break;
         }
         case ADD_FILE:
         {
-            printf("[TASK] ADD file %s\n", task->full_name);
+            PRINT("[TASK] ADD file %s\n", task->full_name);
             break;
         }
         default:
         {
-            printf("[TASK] unknow\n");
+            PRINT("[TASK] unknow\n");
         }
     }
 }
-
-SYNC_TASK task_head = {0};
 
 void proc_all_task(void (*proc)(SYNC_TASK *))
 {
@@ -186,7 +188,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, dir->full_name, dir->name);
             add_task(task);
             dir_add++;
-            //printf("add dir %s\n", dir->full_name);
+            //PRINT("add dir %s\n", dir->full_name);
             break;
         }
         case DEL_DIR:
@@ -194,7 +196,7 @@ void new_event(char event, void* data)
             dir = (DIR_NODE *)data;
             task = get_new_sync_task(event, dir->full_name, dir->name);
             add_task(task);
-            //printf("delete dir %s\n", dir->full_name);
+            //PRINT("delete dir %s\n", dir->full_name);
             break;         
         }
         case ADD_FILE:
@@ -203,7 +205,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_add++;
-            //printf("add file %s\n", file->full_name);
+            //PRINT("add file %s\n", file->full_name);
             break;
         }
         case DEL_FILE:
@@ -212,12 +214,12 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_del++;
-            //printf("delete file %s\n", file->full_name);
+            //PRINT("delete file %s\n", file->full_name);
             break;
         }
         default:
         {
-            printf("unknow change\n");
+            PRINT("unknow change\n");
         }
     }
 }

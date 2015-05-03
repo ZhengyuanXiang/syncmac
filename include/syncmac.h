@@ -1,6 +1,13 @@
 #ifndef _SYNCMAC_H_
 #define _SYNCMAC_H_
 
+#define MY_DEBUG 1
+#if MY_DEBUG
+    #define PRINT(fmt, args...) printf(fmt, ##args)
+#else
+    #define PRINT(fmt, args...) 
+#endif
+
 #define ERR 1
 #define OK 0
 

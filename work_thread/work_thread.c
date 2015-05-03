@@ -28,22 +28,22 @@ static void do_task(SYNC_TASK *task)
     {
         case DEL_DIR:
         {
-            printf("%ld [DEL_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
+            PRINT("%ld [DEL_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
             break;
         }
         case ADD_DIR:
         {
-            printf("%ld [ADD_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
+            PRINT("%ld [ADD_DIR] %d %s %d", thr_id, sleep_sec, task->full_name);
             break;
         }
         case ADD_FILE:
         {
-            printf("%ld [ADD_FILE] %d %s", thr_id, sleep_sec, task->full_name);
+            PRINT("%ld [ADD_FILE] %d %s", thr_id, sleep_sec, task->full_name);
             break;
         }
         case DEL_FILE:
         {
-            printf("%ld [DEL_FILE] %d %s", thr_id, sleep_sec, task->full_name);
+            PRINT("%ld [DEL_FILE] %d %s", thr_id, sleep_sec, task->full_name);
             break;
         }
     }

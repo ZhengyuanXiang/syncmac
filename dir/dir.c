@@ -30,7 +30,7 @@ void free_dir(DIR_NODE *dir)
         del_chl_dir = next_del_chl_dir;
     }
 
-    //printf("free dir %s\n", dir->name);
+    //PRINT("free dir %s\n", dir->name);
     free(dir->name);
     free(dir->full_name);
     free(dir);
@@ -68,7 +68,7 @@ int remove_a_dir(DIR_NODE *curr_dir, char *dir_name)
 
 void free_file(FILE_NODE *file)
 {
-    //printf("free file %s\n", file->name);
+    //PRINT("free file %s\n", file->name);
     free(file->name);
     free(file->full_name);
     free(file);
@@ -106,10 +106,10 @@ void print_dir(DIR_NODE *dir)
 {
     FILE_NODE * file = dir->next_file;
     DIR_NODE * chl_dir = dir->next_chl_dir;
-    //printf("-dir %s\n", dir->full_name);
+    //PRINT("-dir %s\n", dir->full_name);
     while(file)
     {
-        //printf("-reg %s\n", file->name);
+        //PRINT("-reg %s\n", file->name);
         file = file->next_file;
     }
     while (chl_dir)
@@ -134,7 +134,7 @@ void insert_a_chl_dir(DIR_NODE *curr_dir, DIR_NODE *new_dir)
 void insert_a_file(DIR_NODE *curr_dir, FILE_NODE *new_file)
 {
     FILE_NODE *tmp_file_node = curr_dir->next_file;
-    //printf("insert file %s %s\n", curr_dir->full_name, new_file->name);
+    //PRINT("insert file %s %s\n", curr_dir->full_name, new_file->name);
 
     if (tmp_file_node == NULL)
     {
@@ -167,7 +167,7 @@ int read_all_dirent(DIR_NODE *dir)
 
     if (NULL == (dirp = opendir(dir->full_name)))
     {
-        printf("open dir failed %d %s\n", errno, dir->full_name);
+        PRINT("open dir failed %d %s\n", errno, dir->full_name);
         return ERR;
     }
    
@@ -181,12 +181,12 @@ int read_all_dirent(DIR_NODE *dir)
         strcat(file_path, direntp->d_name);
         if (lstat(file_path, &statbuf) < 0)
         {
-            printf("lstat %s error %d\n", file_path, errno);
+            PRINT("lstat %s error %d\n", file_path, errno);
             continue;
         }
         if (S_ISDIR(statbuf.st_mode))
         {
-            //printf("dir %s\n", file_path);
+            //PRINT("dir %s\n", file_path);
             chld_dir_node = get_a_new_dir_node(file_path, direntp->d_name);
             insert_a_chl_dir(dir, chld_dir_node);
 
@@ -196,11 +196,11 @@ int read_all_dirent(DIR_NODE *dir)
         {
             chld_file_node = get_a_new_file_node(file_path, direntp->d_name);
             insert_a_file(dir, chld_file_node);
-            //printf("reg %s\n", file_path);
+            //PRINT("reg %s\n", file_path);
         }
         else
         {
-            //printf("unknow %s\n", file_path);
+            //PRINT("unknow %s\n", file_path);
         }
     }
     closedir(dirp);
