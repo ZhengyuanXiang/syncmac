@@ -20,8 +20,6 @@ SYNC_TASK task_head = {0};
 
 static pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static pthread_mutex_t work_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t prd_work_cond = PTHREAD_COND_INITIALIZER;
 
 static int prd_work_status = ALLOW_WORK;
 
@@ -50,17 +48,11 @@ void monitor()
 
     while (1)
     {
-        pthread_mutex_lock(&work_mutex);
-        while (prd_work_status == WAIT_WORK)
-        {
-            pthread_cond_wait(&prd_work_cond, &work_mutex);
-        }
         sleep(CHECK_INTERVAL);
         new_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
         read_all_dirent(new_dir);
         if (CHANGED == dir_changes(old_dir, new_dir))
             prd_work_status = WAIT_WORK;
-        pthread_mutex_unlock(&work_mutex);
         free_dir(old_dir);
         old_dir = new_dir;
     }
@@ -69,14 +61,13 @@ void monitor()
 
 void free_task(SYNC_TASK *task)
 {
-    pthread_mutex_lock(&work_mutex);
+    pthread_mutex_lock(&task_mutex);
     task_cnt--;
     if (task_cnt == 0)
     {
         prd_work_status = ALLOW_WORK;
-        pthread_cond_signal(&prd_work_cond);
     }
-    pthread_mutex_unlock(&work_mutex);
+    pthread_mutex_unlock(&task_mutex);
 
     free(task->full_name);
     free(task->name);
@@ -86,14 +77,12 @@ void free_task(SYNC_TASK *task)
 void add_task(SYNC_TASK *new_task)
 {
     pthread_mutex_lock(&task_mutex);
-    pthread_mutex_lock(&work_mutex);
     SYNC_TASK *task = &task_head;
     while(task->next)
         task = task->next;
     task->next = new_task;
     task_cnt++;
     pthread_mutex_unlock(&task_mutex);
-    pthread_mutex_unlock(&work_mutex);
 }
 
 SYNC_TASK *fetch_task()

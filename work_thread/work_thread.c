@@ -69,7 +69,7 @@ void clinet_wait()
     struct sembuf sem_buf;
 
     sem_id = semget(MY_SEM_KEY, 0, IPC_CREAT);
-    PRINT("SEMID = %d\n", sem_id);
+
     set_sembuf(&sem_buf, SEM_WORK_ID, -1, SEM_UNDO);
 
     ret = semop(sem_id, &sem_buf, 1);
@@ -81,9 +81,11 @@ void clinet_wait()
 
 void *work_thr_clinet(void *arg)
 {
-    PRINT("work_thr_clinet begin\n");
-    clinet_wait();
-    PRINT("work_thr_clinet end---\n");
+    while (1)
+    {
+        clinet_wait();
+        PRINT("work---\n");
+    }
 }
 
 
@@ -100,10 +102,8 @@ int init_work_thr_pool(void *(*work_thr)(void *))
     struct sembuf sem_buf[2];
 
     sem_id = semget(MY_SEM_KEY, 2, IPC_CREAT | MY_SEM_PERM);
-    sem_args.val = 3;
+    sem_args.val = 0;
     semctl(sem_id, SEM_WORK_ID, SETVAL, sem_args);
-    int val = semctl(sem_id, SEM_WORK_ID, GETVAL, sem_args);
-    PRINT("%d sem %d\n",sem_id, val);
 
     for (; thr_cnt < WORK_THREAD_CNT; thr_cnt++)
     {
@@ -116,7 +116,20 @@ int init_work_thr_pool(void *(*work_thr)(void *))
             syslog(LOG_ERR, "create work thread failed\n");
         }
     }
-    pause();
+    int i = 2;
+    int ret;
+    while (i <= 10)
+    {
+        sleep(1);
+        set_sembuf(&sem_buf[1], SEM_WORK_ID, 2, SEM_UNDO);
+        ret = semop(sem_id, &sem_buf[1], 1);
+        if (ret != 0)
+        {
+            PRINT("ERROR %d\n", __LINE__);
+        }
+        i = i + 2;
+    }
+    PRINT("task over\n");
     closelog();
 
     return flag == 1 ? OK : ERR;
