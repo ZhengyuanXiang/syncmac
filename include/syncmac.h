@@ -18,4 +18,11 @@
 
 #define CHECK_INTERVAL 15
 
+#define MY_SEM_KEY 1234
+#define MY_SEM_MAX 2048
+#define MY_SEM_PERM 0666
+
+#define SEM_TASK_ID 0
+#define SEM_WORK_ID 1
+
 #endif

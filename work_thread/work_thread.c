@@ -8,6 +8,10 @@
 #include <unistd.h>
 #include <syslog.h>
 
+#include <sys/sem.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+
 #define WORK_THREAD_CNT 10
 #define DIR_LOG_IDENT "WORK_THREAD"
 
@@ -50,17 +54,56 @@ static void do_task(SYNC_TASK *task)
     sleep(sleep_sec);
 }
 
+void set_sembuf(struct sembuf* sembuf_p, unsigned short sem_num, 
+                    short sem_op, short sem_flg)
+{
+    sembuf_p->sem_num = sem_num;
+    sembuf_p->sem_op = sem_op;
+    sembuf_p->sem_flg = sem_flg;
+}
+
+void clinet_wait()
+{
+    int sem_id;
+    int ret;
+    struct sembuf sem_buf;
+
+    sem_id = semget(MY_SEM_KEY, 0, IPC_CREAT);
+    PRINT("SEMID = %d\n", sem_id);
+    set_sembuf(&sem_buf, SEM_WORK_ID, -1, SEM_UNDO);
+
+    ret = semop(sem_id, &sem_buf, 1);
+    if (ret != 0)
+    {
+        PRINT("ERROR %d\n", __LINE__);
+    }
+}
+
 void *work_thr_clinet(void *arg)
 {
-
+    PRINT("work_thr_clinet begin\n");
+    clinet_wait();
+    PRINT("work_thr_clinet end---\n");
 }
+
+
 
 int init_work_thr_pool(void *(*work_thr)(void *))
 {
     int thr_cnt = 0;
     pthread_t thr_id;
+    int sem_id;
     int flag = 0;
     openlog(DIR_LOG_IDENT, LOG_PID, LOG_LOCAL0);
+
+    union semun sem_args;
+    struct sembuf sem_buf[2];
+
+    sem_id = semget(MY_SEM_KEY, 2, IPC_CREAT | MY_SEM_PERM);
+    sem_args.val = 3;
+    semctl(sem_id, SEM_WORK_ID, SETVAL, sem_args);
+    int val = semctl(sem_id, SEM_WORK_ID, GETVAL, sem_args);
+    PRINT("%d sem %d\n",sem_id, val);
 
     for (; thr_cnt < WORK_THREAD_CNT; thr_cnt++)
     {
@@ -73,6 +116,7 @@ int init_work_thr_pool(void *(*work_thr)(void *))
             syslog(LOG_ERR, "create work thread failed\n");
         }
     }
+    pause();
     closelog();
 
     return flag == 1 ? OK : ERR;

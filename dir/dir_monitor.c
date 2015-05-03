@@ -25,7 +25,7 @@ static pthread_cond_t prd_work_cond = PTHREAD_COND_INITIALIZER;
 
 static int prd_work_status = ALLOW_WORK;
 
-int task_cnt = 0;
+static int task_cnt = 0;
 
 int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
