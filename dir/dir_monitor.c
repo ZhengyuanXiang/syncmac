@@ -47,7 +47,7 @@ void monitor()
     DIR_NODE *old_dir = get_a_new_dir_node("/private/tmp/Books", "Books");
     read_all_dirent(old_dir);
     DIR_NODE *new_dir;
-    PRINT("xxxxxx\n");
+
     while (1)
     {
         pthread_mutex_lock(&work_mutex);
@@ -71,8 +71,11 @@ void free_task(SYNC_TASK *task)
 {
     pthread_mutex_lock(&work_mutex);
     task_cnt--;
-    prd_work_status = ALLOW_WORK;
-    pthread_cond_signal(&prd_work_cond);
+    if (task_cnt == 0)
+    {
+        prd_work_status = ALLOW_WORK;
+        pthread_cond_signal(&prd_work_cond);
+    }
     pthread_mutex_unlock(&work_mutex);
 
     free(task->full_name);
@@ -169,6 +172,22 @@ SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name)
     return task;
 }
 
+void add_dir_to_task(DIR_NODE *dir)
+{
+    FILE_NODE *file = dir->next_file;
+    DIR_NODE *dir_chl = dir->next_chl_dir;
+    while (file)
+    {
+        new_event(ADD_FILE, (void *)file);
+        file = file->next_file;
+    }
+    while (dir_chl)
+    {
+        new_event (ADD_DIR, (void *)dir_chl);
+        dir_chl = dir_chl->next_bro_dir;
+    }
+}
+
 static int file_add = 0;
 static int file_del = 0;
 static int dir_add = 0;
@@ -187,8 +206,9 @@ void new_event(char event, void* data)
             dir = (DIR_NODE *)data;
             task = get_new_sync_task(event, dir->full_name, dir->name);
             add_task(task);
+            add_dir_to_task(dir);
             dir_add++;
-            //PRINT("add dir %s\n", dir->full_name);
+            PRINT("add dir %s\n", dir->full_name);
             break;
         }
         case DEL_DIR:
@@ -196,7 +216,7 @@ void new_event(char event, void* data)
             dir = (DIR_NODE *)data;
             task = get_new_sync_task(event, dir->full_name, dir->name);
             add_task(task);
-            //PRINT("delete dir %s\n", dir->full_name);
+            PRINT("delete dir %s\n", dir->full_name);
             break;         
         }
         case ADD_FILE:
@@ -205,7 +225,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_add++;
-            //PRINT("add file %s\n", file->full_name);
+            PRINT("add file %s\n", file->full_name);
             break;
         }
         case DEL_FILE:
@@ -214,7 +234,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_del++;
-            //PRINT("delete file %s\n", file->full_name);
+            PRINT("delete file %s\n", file->full_name);
             break;
         }
         default:

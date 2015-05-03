@@ -1,4 +1,4 @@
-include ../makefile
+include ../mf_include
 
 PROGS = test_dir.out test_dir_monitor.out
 INCLUDE = -I../include

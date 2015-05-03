@@ -1,4 +1,4 @@
-include ../makefile
+include ../mf_include
 
 PROGS = test_work_thread.out
 
