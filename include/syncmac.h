@@ -16,7 +16,7 @@
 #define DEL_FILE 3
 #define ADD_FILE 4
 
-#define CHECK_INTERVAL 15
+#define CHECK_INTERVAL 2
 
 #define MY_SEM_KEY 1234
 #define MY_SEM_MAX 2048
@@ -24,5 +24,12 @@
 
 #define SEM_TASK_ID 0
 #define SEM_WORK_ID 1
+
+#define WORK_THREAD_NUM 10
+
+#define CHANGED 1
+#define UNCHANGED 0
+
+#define TEST printf("TEST %s %d\n", __FILE__, __LINE__);
 
 #endif

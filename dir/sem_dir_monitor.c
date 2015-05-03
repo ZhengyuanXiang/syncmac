@@ -10,12 +10,15 @@
 #define DIR_LOG_IDENT "dir_monitor"
 
 
+#define CHANGED 1
+#define UNCHANGED 0
+
 SYNC_TASK task_head = {0};
 
 static pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-int task_cnt = 0;
+static int task_cnt = 0;
 
 int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
@@ -31,24 +34,34 @@ int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
     return change_flag;
 }
 
+int sem_id;
+
 void monitor()
 {
     char *full_name = "/private/tmp/Books";
     char *name = "Books";
     DIR_NODE *old_dir = get_a_new_dir_node(full_name, name);
     DIR_NODE *new_dir;
-
+    
+    int ret;
     read_all_dirent(old_dir);
+    union semun sem_args;
+    struct sembuf sem_buf[2];
+    struct sembuf sem_buf_work;
 
+    /*wait for task process over*/
+    set_sembuf(&sem_buf_work, SEM_WORK_ID, WORK_THREAD_NUM, SEM_UNDO);
+
+    sem_id = semget(MY_SEM_KEY, 2, IPC_CREAT | MY_SEM_PERM);
+
+    sem_args.val = WORK_THREAD_NUM;
+    semctl(sem_id, SEM_WORK_ID, SETVAL, sem_args);
+    sem_args.val = 0;
+    semctl(sem_id, SEM_TASK_ID, SETVAL, sem_args);
 
     while (1)
     {
         sleep(CHECK_INTERVAL);
-        if (task_cnt != 0)
-        {
-            PRINT("ERR %s %d\n", __FILE__, __LINE__);
-            return;
-        }
 
         new_dir = get_a_new_dir_node(full_name, name);
         read_all_dirent(new_dir);
@@ -56,6 +69,18 @@ void monitor()
         free_dir(old_dir);
         old_dir = new_dir;
 
+        set_sembuf(&sem_buf[SEM_TASK_ID], SEM_TASK_ID, task_cnt, SEM_UNDO);
+        set_sembuf(&sem_buf[SEM_WORK_ID], SEM_WORK_ID, 0, SEM_UNDO);
+
+        ret = semop(sem_id, &sem_buf[0], 2);
+        if (ret != 0)
+        {
+            PRINT("ERROR %s %d\n", __FILE__, __LINE__);
+        }
+        ret = semop(sem_id, &sem_buf[0], 2);
+        {
+            PRINT("ERROR %s %d\n", __FILE__, __LINE__);
+        }
     }
 }
 
@@ -193,7 +218,7 @@ void new_event(char event, void* data)
             add_task(task);
             add_dir_to_task(dir);
             dir_add++;
-            //PRINT("add dir %s\n", dir->full_name);
+            PRINT("add dir %s\n", dir->full_name);
             break;
         }
         case DEL_DIR:
@@ -201,7 +226,7 @@ void new_event(char event, void* data)
             dir = (DIR_NODE *)data;
             task = get_new_sync_task(event, dir->full_name, dir->name);
             add_task(task);
-            //PRINT("delete dir %s\n", dir->full_name);
+            PRINT("delete dir %s\n", dir->full_name);
             break;         
         }
         case ADD_FILE:
@@ -210,7 +235,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_add++;
-            //PRINT("add file %s\n", file->full_name);
+            PRINT("add file %s\n", file->full_name);
             break;
         }
         case DEL_FILE:
@@ -219,7 +244,7 @@ void new_event(char event, void* data)
             task = get_new_sync_task(event, file->full_name, file->name);
             add_task(task);
             file_del++;
-            //PRINT("delete file %s\n", file->full_name);
+            PRINT("delete file %s\n", file->full_name);
             break;
         }
         default:
