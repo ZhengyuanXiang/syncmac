@@ -33,13 +33,10 @@ int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 
 void monitor()
 {
-    char *full_name = "/private/tmp/Books";
-    char *name = "Books";
-    DIR_NODE *old_dir = get_a_new_dir_node(full_name, name);
+    char *name = "/private/tmp/Books";
+    DIR_NODE *old_dir = get_a_new_dir_node(name);
     DIR_NODE *new_dir;
-
     read_all_dirent(old_dir);
-
 
     while (1)
     {
@@ -50,7 +47,7 @@ void monitor()
             return;
         }
 
-        new_dir = get_a_new_dir_node(full_name, name);
+        new_dir = get_a_new_dir_node(name);
         read_all_dirent(new_dir);
         dir_changes(old_dir, new_dir);
         free_dir(old_dir);
@@ -65,7 +62,6 @@ void free_task(SYNC_TASK *task)
     task_cnt--;
     pthread_mutex_unlock(&task_mutex);
 
-    free(task->full_name);
     free(task->name);
     free(task);
 }
@@ -103,22 +99,22 @@ static void test_print_task(SYNC_TASK *task)
     {
         case DEL_DIR:
         {
-            PRINT("[TASK] delete dir %s\n", task->full_name);
+            PRINT("[TASK] delete dir %s\n", task->name);
             break;
         }
         case ADD_DIR:
         {
-            PRINT("[TASK] ADD dir %s\n", task->full_name);
+            PRINT("[TASK] ADD dir %s\n", task->name);
             break;
         }
         case DEL_FILE:
         {
-            PRINT("[TASK] delete file %s\n", task->full_name);
+            PRINT("[TASK] delete file %s\n", task->name);
             break;
         }
         case ADD_FILE:
         {
-            PRINT("[TASK] ADD file %s\n", task->full_name);
+            PRINT("[TASK] ADD file %s\n", task->name);
             break;
         }
         default:
@@ -140,14 +136,10 @@ void proc_all_task(void (*proc)(SYNC_TASK *))
 }
 
 
-SYNC_TASK *get_new_sync_task(char type, char *full_name, char *name)
+SYNC_TASK *get_new_sync_task(char type, char *name)
 {
     SYNC_TASK *task = malloc(sizeof(SYNC_TASK));
     task->type = type;
-
-    task->full_name = malloc(strlen(full_name) + 1);
-    strcpy(task->full_name, full_name);
-    task->full_name[strlen(full_name)] = 0;
 
     task->name = malloc(strlen(name) + 1);
     strcpy(task->name, name);
@@ -183,43 +175,48 @@ void new_event(char event, void* data)
     SYNC_TASK *task;
     DIR_NODE *dir;
     FILE_NODE *file;
+    char full_name[DIR_LEN_MAX] = {0};
 
     switch(event)
     {
         case ADD_DIR:
         {
             dir = (DIR_NODE *)data;
-            task = get_new_sync_task(event, dir->full_name, dir->name);
+            get_dir_full_name(dir, full_name);
+            task = get_new_sync_task(event, full_name);
             add_task(task);
             add_dir_to_task(dir);
             dir_add++;
-            //PRINT("add dir %s\n", dir->full_name);
+            //PRINT("add dir %s\n", full_name);
             break;
         }
         case DEL_DIR:
         {
             dir = (DIR_NODE *)data;
-            task = get_new_sync_task(event, dir->full_name, dir->name);
+            get_dir_full_name(dir, full_name);
+            task = get_new_sync_task(event, full_name);
             add_task(task);
-            //PRINT("delete dir %s\n", dir->full_name);
+            //PRINT("delete dir %s\n", full_name);
             break;         
         }
         case ADD_FILE:
         {
             file = (FILE_NODE *)data;
-            task = get_new_sync_task(event, file->full_name, file->name);
+            get_file_full_name(file, full_name);
+            task = get_new_sync_task(event, full_name);
             add_task(task);
             file_add++;
-            //PRINT("add file %s\n", file->full_name);
+            //PRINT("add file %s\n", full_name);
             break;
         }
         case DEL_FILE:
         {
             file = (FILE_NODE *)data;
-            task = get_new_sync_task(event, file->full_name, file->name);
+            get_file_full_name(file, full_name);
+            task = get_new_sync_task(event, full_name);
             add_task(task);
             file_del++;
-            //PRINT("delete file %s\n", file->full_name);
+            //PRINT("delete file %s\n", full_name);
             break;
         }
         default:
@@ -230,21 +227,7 @@ void new_event(char event, void* data)
 }
 
 
-int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)
-{
-    if ( 0 == strcmp(old_file->name, new_file->name)
-         && 0 == strcmp(old_file->full_name, new_file->full_name))
-        return OK;
-    return ERR;
-}
 
-int is_same_dir(DIR_NODE *old_dir, DIR_NODE *new_dir)
-{
-    if ( 0 == strcmp(old_dir->name, new_dir->name)
-         && 0 == strcmp(old_dir->full_name, new_dir->full_name))
-        return OK;
-    return ERR;
-}
 
 int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {

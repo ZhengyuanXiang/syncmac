@@ -9,9 +9,9 @@ extern int task_cnt;
 
 int main()
 {
-    char *full_name = "/private/tmp/Books";
-    char *name = "Books";
-    DIR_NODE *old_dir = get_a_new_dir_node(full_name, name);
+    char *name = "/private/tmp/Books";
+
+    DIR_NODE *old_dir = get_a_new_dir_node(name);
     DIR_NODE *new_dir;
     int change_flag = UNCHANGED;
     read_all_dirent(old_dir);
@@ -25,7 +25,7 @@ int main()
             return ERR;
         }
 
-        new_dir = get_a_new_dir_node(full_name, name);
+        new_dir = get_a_new_dir_node(name);
         read_all_dirent(new_dir);
         change_flag = dir_changes(old_dir, new_dir);
         free_dir(old_dir);
