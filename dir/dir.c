@@ -36,6 +36,13 @@ void free_dir(DIR_NODE *dir)
     free(dir);
 }
 
+int is_file_changed(FILE_NODE *old_file, FILE_NODE *new_file)
+{
+    return (old_file->mtime.tv_sec == new_file->mtime.tv_sec) 
+        && (old_file->mtime.tv_nsec == new_file->mtime.tv_nsec)
+           ? OK : ERR;
+}
+
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)
 {
     char old_file_path[DIR_LEN_MAX] = {0};
@@ -44,7 +51,9 @@ int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)
     get_file_full_name(old_file, old_file_path);
     get_file_full_name(new_file, new_file_path);
     if (0 == strcmp(old_file_path, new_file_path))
+    {
         return OK;
+    }
     return ERR;
 }
 
@@ -179,7 +188,8 @@ int filter(char *name)
 {
     if (strcmp(name, ".") == 0 || 
             strcmp(name, "..") == 0 ||
-            strcmp(name, "a.out.dSYM") == 0)
+            strcmp(name, "a.out.dSYM") == 0 ||
+            name[0] == '.')
         return OK;
     return ERR;
 }
@@ -238,14 +248,14 @@ int read_all_dirent(DIR_NODE *dir)
         if (S_ISDIR(statbuf.st_mode))
         {
             //PRINT("dir %s\n", file_path);
-            chld_dir_node = get_a_new_dir_node(direntp->d_name);
+            chld_dir_node = get_a_new_dir_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtimespec));
             insert_a_chl_dir(dir, chld_dir_node);
 
             read_all_dirent(chld_dir_node);
         }
         else if (S_ISREG(statbuf.st_mode))
         {
-            chld_file_node = get_a_new_file_node(direntp->d_name);
+            chld_file_node = get_a_new_file_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtimespec));
             insert_a_file(dir, chld_file_node);
             //PRINT("reg %s\n", file_path);
         }
@@ -259,7 +269,8 @@ int read_all_dirent(DIR_NODE *dir)
     
 }
 
-DIR_NODE * get_a_new_dir_node(char *name)
+DIR_NODE * get_a_new_dir_node(char *name, off_t size, 
+                          struct timespec *mtimep)
 {
     DIR_NODE *dir = malloc(sizeof(DIR_NODE));
 
@@ -267,6 +278,8 @@ DIR_NODE * get_a_new_dir_node(char *name)
     memset(dir->name, 0, strlen(name) + 1);
     strcpy(dir->name, name);
 
+    dir->size = size;
+    memcpy((void *)(&(dir->mtime)), (void *)mtimep, sizeof(struct timespec));
     dir->next_bro_dir = NULL;
     dir->next_chl_dir = NULL;
     dir->next_file = NULL;
@@ -275,7 +288,8 @@ DIR_NODE * get_a_new_dir_node(char *name)
     return dir;
 }
 
-FILE_NODE * get_a_new_file_node(char *name)
+FILE_NODE *get_a_new_file_node(char *name, off_t size, 
+                          struct timespec *mtimep)
 {
     FILE_NODE *file = malloc(sizeof(FILE_NODE));
 
@@ -283,6 +297,8 @@ FILE_NODE * get_a_new_file_node(char *name)
     memset(file->name, 0, strlen(name) + 1);
     strcpy(file->name, name);
 
+    file->size = size;
+    memcpy((void *)(&(file->mtime)), (void *)mtimep, sizeof(struct timespec));
     file->next_file = NULL;
     file->parent_dir = NULL;
     return file;

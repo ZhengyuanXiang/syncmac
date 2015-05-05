@@ -15,6 +15,7 @@
 #define ADD_DIR 2
 #define DEL_FILE 3
 #define ADD_FILE 4
+#define MOD_FILE 5
 
 #define CHECK_INTERVAL 2
 

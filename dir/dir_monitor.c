@@ -34,7 +34,7 @@ int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 void monitor()
 {
     char *name = "/private/tmp/Books";
-    DIR_NODE *old_dir = get_a_new_dir_node(name);
+    DIR_NODE *old_dir = get_a_new_dir_node(name, 0, 0);
     DIR_NODE *new_dir;
     read_all_dirent(old_dir);
 
@@ -47,7 +47,7 @@ void monitor()
             return;
         }
 
-        new_dir = get_a_new_dir_node(name);
+        new_dir = get_a_new_dir_node(name, 0, 0);
         read_all_dirent(new_dir);
         dir_changes(old_dir, new_dir);
         free_dir(old_dir);
@@ -136,7 +136,7 @@ void proc_all_task(void (*proc)(SYNC_TASK *))
 }
 
 
-SYNC_TASK *get_new_sync_task(char type, char *name)
+SYNC_TASK *get_new_sync_task(char type, char *name, off_t size)
 {
     SYNC_TASK *task = malloc(sizeof(SYNC_TASK));
     task->type = type;
@@ -144,7 +144,7 @@ SYNC_TASK *get_new_sync_task(char type, char *name)
     task->name = malloc(strlen(name) + 1);
     strcpy(task->name, name);
     task->name[strlen(name)] = 0;
-
+    task->size = size;
     task->next = NULL;
     return task;
 }
@@ -165,11 +165,6 @@ void add_dir_to_task(DIR_NODE *dir)
     }
 }
 
-static int file_add = 0;
-static int file_del = 0;
-static int dir_add = 0;
-static int dir_del = 0;
-
 void new_event(char event, void* data)
 {
     SYNC_TASK *task;
@@ -180,43 +175,23 @@ void new_event(char event, void* data)
     switch(event)
     {
         case ADD_DIR:
-        {
-            dir = (DIR_NODE *)data;
-            get_dir_full_name(dir, full_name);
-            task = get_new_sync_task(event, full_name);
-            add_task(task);
-            add_dir_to_task(dir);
-            dir_add++;
-            //PRINT("add dir %s\n", full_name);
-            break;
-        }
         case DEL_DIR:
         {
             dir = (DIR_NODE *)data;
             get_dir_full_name(dir, full_name);
-            task = get_new_sync_task(event, full_name);
+            task = get_new_sync_task(event, full_name, dir->size);
             add_task(task);
-            //PRINT("delete dir %s\n", full_name);
-            break;         
-        }
-        case ADD_FILE:
-        {
-            file = (FILE_NODE *)data;
-            get_file_full_name(file, full_name);
-            task = get_new_sync_task(event, full_name);
-            add_task(task);
-            file_add++;
-            //PRINT("add file %s\n", full_name);
+            add_dir_to_task(dir);
             break;
         }
+        case ADD_FILE:
         case DEL_FILE:
+        case MOD_FILE:
         {
             file = (FILE_NODE *)data;
             get_file_full_name(file, full_name);
-            task = get_new_sync_task(event, full_name);
+            task = get_new_sync_task(event, full_name, file->size);
             add_task(task);
-            file_del++;
-            //PRINT("delete file %s\n", full_name);
             break;
         }
         default:
@@ -225,9 +200,6 @@ void new_event(char event, void* data)
         }
     }
 }
-
-
-
 
 int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
@@ -289,14 +261,22 @@ int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
     FILE_NODE *new_file;
 
     int change_flag = UNCHANGED;
-
+    /*get deleted or modified files*/
     while (old_file != NULL)
     {
         new_file = new_dir->next_file;
         while (new_file != NULL)
         {
             if (OK == is_same_file(old_file, new_file))
+            {
+                /*get modifid files*/
+                if (OK == is_file_changed)
+                {
+                    new_event(MOD_FILE, (void *)new_file);
+                    change_flag = CHANGED;
+                }
                 break;
+            }
             new_file = new_file->next_file;
         }
         if (NULL == new_file)
@@ -308,11 +288,13 @@ int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
     }
 
     new_file = new_dir->next_file;
+    /*get new files*/
     while (new_file)
     {
         old_file = old_dir->next_file;
         while (old_file != NULL)
         {
+            /*don't need get modifid files*/
             if (OK == is_same_file(old_file, new_file))
                 break;
             old_file = old_file->next_file;

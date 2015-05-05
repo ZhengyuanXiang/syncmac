@@ -9,9 +9,13 @@
 #define DIRNODE SIF_DIR
 #define FILENODE SIF_REG
 
+#include <sys/stat.h>
+
 typedef struct tag_file_node
 {
     char *name;
+    off_t size;
+    struct timespec mtime;
     struct tag_file_node *next_file;
     struct tag_dir_node *parent_dir;
 }FILE_NODE;
@@ -19,15 +23,17 @@ typedef struct tag_file_node
 typedef struct tag_dir_node
 {
     char *name;
+    off_t size;
+    struct timespec mtime;
     struct tag_dir_node *next_bro_dir;
     struct tag_dir_node *next_chl_dir;
     struct tag_dir_node *parent_dir;
     struct tag_file_node *next_file;
 }DIR_NODE;
 
-DIR_NODE * get_a_new_dir_node(char *name);
+DIR_NODE * get_a_new_dir_node(char *name, off_t size, struct timespec *mtimep);
 int read_all_dirent(DIR_NODE *dir);
-FILE_NODE * get_a_new_file_node(char *name);
+FILE_NODE * get_a_new_file_node(char *name, off_t size, struct timespec *mtimep);
 void insert_a_chl_dir(DIR_NODE *curr_dir, DIR_NODE *new_dir);
 void insert_a_file(DIR_NODE *curr_dir, FILE_NODE *new_file);
 void print_dir(DIR_NODE *dir);
@@ -42,5 +48,6 @@ int filter(char *name);
 
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file);
 int is_same_dir(DIR_NODE *old_dir, DIR_NODE *new_dir);
+int is_file_changed(FILE_NODE *old_file, FILE_NODE *new_file);
 
 #endif
