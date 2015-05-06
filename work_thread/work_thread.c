@@ -56,14 +56,14 @@ static void do_task(SYNC_TASK *task)
     sleep(sleep_sec);
 }
 
-void *work_thr_clinet(void *arg)
+void *work_thr_clinet_dir(void *arg)
 {
     int ret;
     SYNC_TASK *task;
 
     while (1)
     {
-        task = fetch_task();
+        task = fetch_dir_task();
         if (NULL == task)
             break;
         do_task(task);
@@ -72,7 +72,23 @@ void *work_thr_clinet(void *arg)
     pthread_exit(0);
 }
 
-int init_work_thr_pool(void *(*work_thr)(void *))
+void *work_thr_clinet_file(void *arg)
+{
+    int ret;
+    SYNC_TASK *task;
+
+    while (1)
+    {
+        task = fetch_file_task();
+        if (NULL == task)
+            break;
+        do_task(task);
+        free_task(task);
+    }
+    pthread_exit(0);
+}
+
+int work_thr_pool(void *(*work_thr)(void *))
 {
     int thr_idx;
     pthread_t thr_id[WORK_THREAD_NUM];
@@ -94,5 +110,7 @@ int init_work_thr_pool(void *(*work_thr)(void *))
 
 int start_work()
 {
-    return init_work_thr_pool(work_thr_clinet);
+    work_thr_pool(work_thr_clinet_dir);
+    work_thr_pool(work_thr_clinet_file);
+    return OK;
 }

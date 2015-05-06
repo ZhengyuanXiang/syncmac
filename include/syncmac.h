@@ -32,5 +32,5 @@
 #define UNCHANGED 0
 
 #define TEST printf("TEST %s %d\n", __FILE__, __LINE__);
-
+#define DEBUG_ERR printf("[DEBUG_ERR] %s %d\n", __FILE__, __LINE__);
 #endif

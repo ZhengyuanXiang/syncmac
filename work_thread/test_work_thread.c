@@ -6,6 +6,6 @@
 
 int main(int argc, char **args)
 {
-    init_work_thr_pool(work_thr_clinet);
+    work_thr_pool(work_thr_clinet_file);
     pause();
 }
