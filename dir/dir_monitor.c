@@ -4,18 +4,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <syslog.h>
-#include <pthread.h>
 #include "syncmac.h"
+#include "task.h"
 
 #define DIR_LOG_IDENT "dir_monitor"
 
-
-SYNC_TASK task_head = {0};
-
-static pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-int task_cnt = 0;
+extern int task_cnt;
 
 int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir)
 {
@@ -56,41 +50,6 @@ void monitor()
     }
 }
 
-void free_task(SYNC_TASK *task)
-{
-    pthread_mutex_lock(&task_mutex);
-    task_cnt--;
-    pthread_mutex_unlock(&task_mutex);
-
-    free(task->name);
-    free(task);
-}
-
-void add_task(SYNC_TASK *new_task)
-{
-    pthread_mutex_lock(&task_mutex);
-    SYNC_TASK *task = &task_head;
-    while(task->next)
-        task = task->next;
-    task->next = new_task;
-    task_cnt++;
-    pthread_mutex_unlock(&task_mutex);
-}
-
-SYNC_TASK *fetch_task()
-{
-    pthread_mutex_lock(&task_mutex);
-    SYNC_TASK *task = task_head.next;
-    if (task == NULL)
-    {
-        pthread_mutex_unlock(&task_mutex);
-        return NULL;
-    }
-    
-    task_head.next = task->next;
-    pthread_mutex_unlock(&task_mutex);
-    return task;
-}
 
 
 static void test_print_task(SYNC_TASK *task)
@@ -117,36 +76,16 @@ static void test_print_task(SYNC_TASK *task)
             PRINT("[TASK] ADD file %s\n", task->name);
             break;
         }
+        case MOD_FILE:
+        {
+            PRINT("[TASK] MOD file %s\n", task->name);
+            break;
+        }
         default:
         {
             PRINT("[TASK] unknow\n");
         }
     }
-}
-
-void proc_all_task(void (*proc)(SYNC_TASK *))
-{
-    SYNC_TASK *task = fetch_task();
-    while(task)
-    {
-        proc(task);
-        free_task(task);
-        task = fetch_task();
-    }
-}
-
-
-SYNC_TASK *get_new_sync_task(char type, char *name, off_t size)
-{
-    SYNC_TASK *task = malloc(sizeof(SYNC_TASK));
-    task->type = type;
-
-    task->name = malloc(strlen(name) + 1);
-    strcpy(task->name, name);
-    task->name[strlen(name)] = 0;
-    task->size = size;
-    task->next = NULL;
-    return task;
 }
 
 void add_dir_to_task(DIR_NODE *dir)
@@ -270,7 +209,7 @@ int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
             if (OK == is_same_file(old_file, new_file))
             {
                 /*get modifid files*/
-                if (OK == is_file_changed)
+                if (OK == is_file_changed(old_file, new_file))
                 {
                     new_event(MOD_FILE, (void *)new_file);
                     change_flag = CHANGED;

@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "task.h"
 #include "syncmac.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -40,7 +41,7 @@ int is_file_changed(FILE_NODE *old_file, FILE_NODE *new_file)
 {
     return (old_file->mtime.tv_sec == new_file->mtime.tv_sec) 
         && (old_file->mtime.tv_nsec == new_file->mtime.tv_nsec)
-           ? OK : ERR;
+           ? ERR : OK;
 }
 
 int is_same_file(FILE_NODE *old_file, FILE_NODE *new_file)

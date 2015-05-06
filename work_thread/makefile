@@ -3,8 +3,8 @@ include ../mf_include
 PROGS = test_work_thread.out
 
 LIB = -lpthread
-INCLUDE = -I../include -I../dir
-LIB_OBJECT = ../dir/libdir.a
+INCLUDE = -I../include -I../dir -I../task
+LIB_OBJECT = ../dir/libdir.a ../task/libtask.a
 
 OBJS = work_thread.o
 

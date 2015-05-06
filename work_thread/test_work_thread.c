@@ -1,4 +1,5 @@
 #include "work_thread.h"
+#include "task.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

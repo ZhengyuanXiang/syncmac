@@ -1,12 +1,12 @@
 include ./mf_include
 
-DIRS = dir work_thread
+DIRS = task dir work_thread
 
 PROGS = syncmac_clinet.out
 
 LIB = -lpthread
 INCLUDE = -I./include -I./dir -I./work_thread
-LIB_OBJECT = ./dir/libdir.a ./work_thread/libworkthread.a
+LIB_OBJECT = ./dir/libdir.a ./work_thread/libworkthread.a ./task/libtask.a
 
 all: $(PROGS)
 

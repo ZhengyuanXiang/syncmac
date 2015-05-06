@@ -1,8 +1,10 @@
 include ../mf_include
 
 PROGS = test_dir.out test_dir_monitor.out
-INCLUDE = -I../include
+INCLUDE = -I../include -I../task/
 OBJS = dir.o dir_monitor.o
+
+LIB_OBJECT = ../task/libtask.a
 
 all: $(PROGS) dir.o dir_monitor.o libdir.a
 
@@ -19,7 +21,7 @@ test_dir.out: test_dir.o dir.o
 	$(CC) -o test_dir.out test_dir.o dir.o
 
 test_dir_monitor.out: test_dir_monitor.o dir.o dir_monitor.o
-	$(CC) -o test_dir_monitor.out test_dir_monitor.o dir.o dir_monitor.o
+	$(CC) -o test_dir_monitor.out test_dir_monitor.o dir.o dir_monitor.o $(LIB_OBJECT)
 
 libdir.a: $(OBJS)
 	$(AR) libdir.a $(OBJS)

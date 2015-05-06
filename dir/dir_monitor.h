@@ -4,14 +4,6 @@
 #include "dir.h"
 #include <sys/types.h>
 
-typedef struct tag_sync_task
-{
-    char type;
-    char rev[2];
-    off_t size;
-    char *name;
-    struct tag_sync_task *next;
-}SYNC_TASK;
 
 void new_event(char event, void* data);
 int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
@@ -19,10 +11,5 @@ int chl_dir_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
 int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir);
 int dir_changes(DIR_NODE *old_dir, DIR_NODE *new_dir);
 void monitor();
-SYNC_TASK *get_new_sync_task(char type, char *name, off_t size);
-void free_task(SYNC_TASK *task);
-void add_task(SYNC_TASK *new_task);
-SYNC_TASK *fetch_task();
-void proc_all_task(void (*proc)(SYNC_TASK *));
 
 #endif

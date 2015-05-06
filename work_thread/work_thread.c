@@ -2,6 +2,7 @@
 #include "work_thread.h"
 #include "dir.h"
 #include "dir_monitor.h"
+#include "task.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -44,6 +45,11 @@ static void do_task(SYNC_TASK *task)
         case DEL_FILE:
         {
             PRINT("[DEL_FILE] %d %s %lld\n", sleep_sec, task->name, task->size);
+            break;
+        }
+        case MOD_FILE:
+        {
+            PRINT("[MOD_FILE] %d %s %lld\n", sleep_sec, task->name, task->size);
             break;
         }
     }
