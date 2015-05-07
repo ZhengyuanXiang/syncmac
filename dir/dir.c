@@ -249,14 +249,22 @@ int read_all_dirent(DIR_NODE *dir)
         if (S_ISDIR(statbuf.st_mode))
         {
             //PRINT("dir %s\n", file_path);
+            #ifdef __APPLE__
             chld_dir_node = get_a_new_dir_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtimespec));
+            #elif __linux__
+            chld_dir_node = get_a_new_dir_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtim));
+            #endif
             insert_a_chl_dir(dir, chld_dir_node);
 
             read_all_dirent(chld_dir_node);
         }
         else if (S_ISREG(statbuf.st_mode))
         {
+            #ifdef __APPLE__
             chld_file_node = get_a_new_file_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtimespec));
+            #elif __linux__
+            chld_file_node = get_a_new_file_node(direntp->d_name, statbuf.st_size, &(statbuf.st_mtim));
+            #endif
             insert_a_file(dir, chld_file_node);
             //PRINT("reg %s\n", file_path);
         }
