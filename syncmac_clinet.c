@@ -22,7 +22,7 @@ int main()
         sleep(CHECK_INTERVAL);
         if (task_cnt != 0)
         {
-            PRINT("ERR %s %d\n", __FILE__, __LINE__);
+            PRINT("ERR %s %d %d\n", __FILE__, __LINE__, task_cnt);
             return ERR;
         }
 
@@ -31,11 +31,12 @@ int main()
         change_flag = dir_changes(old_dir, new_dir);
         free_dir(old_dir);
         old_dir = new_dir;
-        TEST
+
         if (CHANGED == change_flag)
         {
-            TEST
+            printf("---------------\n");
             start_work();
+            printf("---------------\n");
         }
     }
     return OK;

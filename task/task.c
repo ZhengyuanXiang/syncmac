@@ -78,6 +78,12 @@ static void add_dir_task(SYNC_TASK *new_task)
 
 static void add_file_task(SYNC_TASK *task)
 {
+    PRINT("----%d----\n", task_cnt);
+    /*SYNC_TASK *curr = &file_task_head;
+    while(curr->next)
+        curr = curr->next;
+    curr->next = task;*/
+
     SYNC_TASK *curr = file_task_head.next;
     SYNC_TASK *pre_curr = &file_task_head;
 
@@ -111,6 +117,7 @@ static void add_file_task(SYNC_TASK *task)
         curr = curr->next;
     }
     pre_curr->next = task;
+    task->next = curr;
 }
 
 void add_task(SYNC_TASK *new_task)

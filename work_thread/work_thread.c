@@ -17,7 +17,7 @@ static int get_rand(unsigned int seed)
 {
     unsigned int state;
     srand(seed);
-    return rand() % 10 + 1;
+    return rand() % 5 + 1;
 }
 
 static void do_task(SYNC_TASK *task)

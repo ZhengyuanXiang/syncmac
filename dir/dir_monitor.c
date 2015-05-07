@@ -120,7 +120,10 @@ void new_event(char event, void* data)
             get_dir_full_name(dir, full_name);
             task = get_new_sync_task(event, full_name, dir->size);
             add_task(task);
-            add_dir_to_task(dir);
+            if (ADD_DIR == event)
+            {
+                add_dir_to_task(dir);
+            }
             break;
         }
         case ADD_FILE:
@@ -241,6 +244,7 @@ int file_change(DIR_NODE *old_dir, DIR_NODE *new_dir)
         if (NULL == old_file)
         {
             change_flag = CHANGED;
+            TEST
             new_event(ADD_FILE, (void *)new_file);
         }
         new_file = new_file->next_file;
