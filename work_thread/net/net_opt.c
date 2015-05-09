@@ -1,5 +1,7 @@
 #include "net_opt.h"
 #include "syncmac.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -96,6 +98,7 @@ int con_serv(char *srv_ip, unsigned short srv_port)
         PRINT("unknow error connect %d\n", errno);
         return ERR;
     }
+    return OK;
 }
 
 int start_server()
