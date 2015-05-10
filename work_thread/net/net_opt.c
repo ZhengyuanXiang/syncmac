@@ -1,5 +1,6 @@
 #include "net_opt.h"
 #include "syncmac.h"
+#include "user.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -134,5 +135,6 @@ int start_server()
         return ERR;
     }
     PRINT("clinet connected\n");
+    new_sync_user("test");
     return OK;
 }
