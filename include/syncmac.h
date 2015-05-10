@@ -32,6 +32,10 @@
 #define UNCHANGED 0
 
 #define NAME_MAX 8
+#define SERVER_PORT 6666
+
+#define SERV_TYPE_MAIN 1
+#define SERV_TYPE_TERM 2
 
 #define TEST printf("TEST %s %d\n", __FILE__, __LINE__);
 #define DEBUG_ERR printf("[DEBUG_ERR] %s %d\n", __FILE__, __LINE__);

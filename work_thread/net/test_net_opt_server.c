@@ -1,6 +1,7 @@
 #include "net_opt.h"
+#include "syncmac.h"
 
 int main()
 {
-    start_server();
+    listen_server(SERV_TYPE_MAIN);
 }

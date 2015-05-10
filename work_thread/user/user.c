@@ -3,6 +3,9 @@
 #include <dir.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+static SYNC_USER user_head = {0};
 
 SYNC_USER *new_sync_user(char *name)
 {
@@ -10,6 +13,7 @@ SYNC_USER *new_sync_user(char *name)
     user->next_term = NULL;
     user->root = NULL;
     memcpy(&(user->name), name, strlen(name) + 1);
+    user->next = NULL;
     return user;
 }
 

@@ -8,11 +8,31 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
 
 #define BACK_LOG 20
+
+static unsigned short temp_port = 1025;
+static pthread_mutex_t temp_port_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static unsigned short get_temp_port()
+{
+    pthread_mutex_lock(&temp_port_mutex);
+    unsigned short port = temp_port;
+    if (temp_port == 65535)
+    {
+        temp_port = 1025;
+    }
+    else
+    {
+        temp_port++;
+    }
+    pthread_mutex_unlock(&temp_port_mutex);
+    return port;
+}
 
 int readn(int fd, void *vptr, int n)
 {
@@ -164,40 +184,57 @@ void login_cli(int logfd, char type, char *name)
     PRINT("login success\n");
 }
 
-int start_server()
+int listen_server(char type)
 {
     int serv_fd;
-    int ret;
-    int clinet_fd;
-    socklen_t cli_sock_len;
-    struct sockaddr_in servaddr, cliaddr;
+    int ret, bind_idx;
+    int bind_cnt = 1;
+    unsigned port = SERVER_PORT;
+    //socklen_t cli_sock_len;
+    struct sockaddr_in servaddr;
+
     bzero(&servaddr, sizeof(struct sockaddr_in));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(SERVER_PORT);
+    if (type == SERV_TYPE_TERM)
+    {
+        port = get_temp_port();
+        bind_cnt = 5;
+    }
+    servaddr.sin_port = htons(port);
 
     serv_fd = socket(AF_INET, SOCK_STREAM, 0);
-    ret = bind(serv_fd, (struct sockaddr *)&servaddr, sizeof(struct sockaddr_in));
-    if (ret == -1)
+
+    for (bind_idx = 0; bind_idx < bind_cnt; bind_idx++)
     {
-        if (EADDRINUSE == errno)
+        ret = bind(serv_fd, (struct sockaddr *)&servaddr, sizeof(struct sockaddr_in));
+        if (ret == -1)
         {
-            PRINT("addr inused\n");
+            if (EADDRINUSE == errno)
+            {
+                PRINT("port inused %u\n", port);
+                port = get_temp_port();
+                servaddr.sin_port = htons(port);
+            }
+            PRINT("bind failed %d\n", errno);
+            break;
+        }
+    }
+    if (ret == -1)
+        return -1;
+
+    listen(serv_fd, BACK_LOG);
+    return serv_fd;
+    /*while (1)
+    {
+        clinet_fd = accept(serv_fd, (struct sockaddr *)&cliaddr, &cli_sock_len);
+        if (clinet_fd == -1)
+        {
+            PRINT("accept error %d\n", errno);
             return ERR;
         }
-        PRINT("bind failed %d\n", errno);
-        return ERR;
+        login_serv(clinet_fd);
     }
-    
-    listen(serv_fd, BACK_LOG);
-    clinet_fd = accept(serv_fd, (struct sockaddr *)&cliaddr, &cli_sock_len);
-    if (clinet_fd == -1)
-    {
-        PRINT("accept error %d\n", errno);
-        return ERR;
-    }
-    PRINT("clinet connected\n");
-    login_serv(clinet_fd);
-    new_sync_user("test");
-    return OK;
+
+    return OK;*/
 }

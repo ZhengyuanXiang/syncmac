@@ -1,4 +1,5 @@
 #include "net_opt.h"
+#include "syncmac.h"
 
 int main(int argc, char **args)
 {

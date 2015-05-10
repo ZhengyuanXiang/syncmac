@@ -3,6 +3,7 @@
 
 #include <dir.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include "syncmac.h"
 
 typedef struct tag_term
@@ -18,6 +19,7 @@ typedef struct tag_user
     char name[NAME_MAX];
     SYNC_TERM *next_term;
     DIR_NODE *root;
+    struct tag_user *next;
 }SYNC_USER;
 
 SYNC_USER *new_sync_user(char *name);

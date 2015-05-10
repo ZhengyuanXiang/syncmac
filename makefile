@@ -2,7 +2,7 @@ include ./mf_include
 
 DIRS = task dir work_thread
 
-PROGS = syncmac_clinet.out
+PROGS = syncmac_clinet.out syncmac_server.out
 
 LIB = -lpthread
 INCLUDE = -I./include -I./dir -I./work_thread
@@ -26,3 +26,6 @@ submodule:
 
 syncmac_clinet.out: submodule
 	$(CC) $(INCLUDE) syncmac_clinet.c -o syncmac_clinet.out $(LIB_OBJECT) $(LIB)
+
+syncmac_server.out: submodule
+	$(CC) $(INCLUDE) syncmac_server.c -o syncmac_server.out $(LIB_OBJECT) $(LIB)
