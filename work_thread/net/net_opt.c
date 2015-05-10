@@ -1,6 +1,7 @@
 #include "net_opt.h"
 #include "syncmac.h"
 #include "user.h"
+#include "msg.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -28,7 +29,10 @@ int readn(int fd, void *vptr, int n)
             if (errno == EINTR)
                 nread = 0;
             else
+            {
                 return -1;
+                PRINT("readn error %d\n", errno);
+            }
         }
         else if (nread == 0)
         {
@@ -59,7 +63,10 @@ int writen(int fd, const void *vptr, int n)
             if (nwritten < 0 && errno == EINTR)
                 nwritten = 0;
             else
+            {
                 return -1;
+                PRINT("writen error %d\n", errno);
+            }
         }
         nleft -= nwritten;
         ptr += nwritten;
@@ -99,7 +106,62 @@ int con_serv(char *srv_ip, unsigned short srv_port)
         PRINT("unknow error connect %d\n", errno);
         return ERR;
     }
+    login_cli(cli_fd, LOGIN, "xiang");
     return OK;
+}
+
+void login_serv(int logfd)
+{
+    MSG_LOGIN msg = {0};
+    MSG_LOGIN msg_reply = {0};
+
+    int readlen = 0;
+    readlen = readn(logfd, &msg, sizeof(MSG_LOGIN));
+    if (readlen != sizeof(MSG_LOGIN))
+    {
+        PRINT("login serv proc err %d %lu\n", readlen, sizeof(MSG_LOGIN));
+        close(logfd);
+        return;
+    }
+    msg.name[NAME_MAX - 1] = 0;
+    PRINT("name:%s type:%d\n", msg.name, msg.type);
+    msg_reply.type = LOGOK;
+    if (sizeof(MSG_LOGIN) != writen(logfd, &msg_reply, sizeof(MSG_LOGIN)))
+    {
+        PRINT("login clinet proc err\n");
+        close(logfd);
+        return;
+    }
+    close(logfd);
+}
+
+void login_cli(int logfd, char type, char *name)
+{
+    MSG_LOGIN msg = {0};
+    MSG_LOGIN msg_reply = {0};
+
+    msg.type = type;
+    strncpy(msg.name, name, NAME_MAX);
+    msg.name[NAME_MAX - 1] = 0;
+    if (sizeof(MSG_LOGIN) != writen(logfd, &msg, sizeof(MSG_LOGIN)))
+    {
+        PRINT("login clinet proc err\n");
+        close(logfd);
+        return;
+    }
+
+    if (sizeof(MSG_LOGIN) != readn(logfd, &msg_reply, sizeof(MSG_LOGIN)))
+    {
+        PRINT("login serv proc err\n");
+        close(logfd);
+        return;
+    }
+    if (msg_reply.type != LOGOK)
+    {
+        PRINT("login failed \n");
+        return;
+    }
+    PRINT("login success\n");
 }
 
 int start_server()
@@ -126,7 +188,7 @@ int start_server()
         PRINT("bind failed %d\n", errno);
         return ERR;
     }
-
+    
     listen(serv_fd, BACK_LOG);
     clinet_fd = accept(serv_fd, (struct sockaddr *)&cliaddr, &cli_sock_len);
     if (clinet_fd == -1)
@@ -135,6 +197,7 @@ int start_server()
         return ERR;
     }
     PRINT("clinet connected\n");
+    login_serv(clinet_fd);
     new_sync_user("test");
     return OK;
 }

@@ -1,10 +1,9 @@
 #ifndef _USER_H_
 #define _USER_H_
 
-#define NAME_MAX 8
-
 #include <dir.h>
 #include <netinet/in.h>
+#include "syncmac.h"
 
 typedef struct tag_term
 {
